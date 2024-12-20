@@ -2,7 +2,9 @@
 
 std :: map<std :: string, ExprType> primitives;
 std :: map<std :: string, ExprType> reserved_words;
-
+std :: map<std :: string, ExprType> primitives0;
+std :: map<std :: string, ExprType> primitives1;
+std :: map<std :: string, ExprType> primitives2;
 void initPrimitives()
 {
     // primitives stores all procedures in library, mapping them to ExprTypes
@@ -27,6 +29,30 @@ void initPrimitives()
     primitives["car"] = E_CAR;
     primitives["cdr"] = E_CDR;
     primitives["exit"] = E_EXIT;
+
+    primitives0["void"] = E_VOID;
+    primitives0["exit"] = E_EXIT;
+
+    primitives2["*"] = E_MUL;
+    primitives2["-"] = E_MINUS;
+    primitives2["+"] = E_PLUS;
+    primitives2["<"] = E_LT;
+    primitives2["<="] = E_LE;
+    primitives2["="] = E_EQ;
+    primitives2[">="] = E_GE;
+    primitives2[">"] = E_GT;
+    primitives2["eq?"] = E_EQQ;
+    primitives2["cons"] = E_CONS;
+
+    primitives1["boolean?"] = E_BOOLQ;
+    primitives1["fixnum?"] = E_INTQ;
+    primitives1["null?"] = E_NULLQ;
+    primitives1["pair?"] = E_PAIRQ;
+    primitives1["procedure?"] = E_PROCQ;
+    primitives1["symbol?"] = E_SYMBOLQ;
+    primitives1["not"] = E_NOT;
+    primitives1["car"] = E_CAR;
+    primitives1["cdr"] = E_CDR;
 }
 
 void initReservedWords()
