@@ -32,9 +32,6 @@ Expr Number :: parse(Assoc &env) {
 
 //字符串 如果一些字符接近数字，会转化成整数
 Expr Identifier :: parse(Assoc &env) {
-    if(!std::isalnum(s.back())) {
-        return Expr(new Var(s));
-    }
     return Expr(new Var(s));
 }
 
@@ -65,7 +62,6 @@ Expr List :: parse(Assoc &env) {
         string str = va->x;
 
         if(primitives.count(str)) {
-            Expr expr = operator_Syntax->parse(env);
             std::vector<Expr> rand;
             for(int i = 1;i < n;++i) {
                 rand.push_back(stxs[i].parse(env));
@@ -105,7 +101,6 @@ Expr List :: parse(Assoc &env) {
                 }
             }
             Expr body = stxs[2]->parse(env);
-            //Expr body = Expr(new Quote(list_->stxs[2]));
             return Expr(new Let(bind,body));
         }else if(str == "begin") {
             for(int i = 1;i < n;++i) {
@@ -152,21 +147,18 @@ Expr List :: parse(Assoc &env) {
             Expr body = stxs[2]->parse(env);
             return Expr(new Letrec(bind,body));
         }else {
-            Expr expr = operator_Syntax->parse(env);
             std::vector<Expr> rand;
             for(int i = 1;i < n;++i) {
                 rand.push_back(stxs[i].parse(env));
             }
             return Expr(new Apply(expr,rand));
         }
-    }
-    else if (List* transform_Syntax = dynamic_cast<List*>(operator_Syntax.get())) {
-        Expr exp = transform_Syntax->parse(env);
+    }else {
         std::vector<Expr> rand;
         for(int i = 1;i < n;++i) {
             rand.push_back(stxs[i].parse(env));
         }
-        return Expr(new Apply(exp,rand));
+        return Expr(new Apply(expr,rand));
     }
     throw RuntimeError("");
 }
