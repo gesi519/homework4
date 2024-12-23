@@ -177,7 +177,7 @@ Value Begin::eval(Assoc &e) { // begin expression
     if(es.empty()) {
         return NullV();
     }
-    for(int i = 1;i < es.size();++i) {
+    for(int i = 0;i < es.size() - 1;++i) {
         es[i]->eval(e);
     }
     return Value(es.back()->eval(e));
