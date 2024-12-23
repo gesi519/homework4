@@ -17,13 +17,13 @@ Value Let::eval(Assoc &env) { // let expression
     Assoc new_env = env;
     int size = bind.size();
     for(int i = 0;i < size;++i) {
+
         std::string &str = bind[i].first;
         Expr &expr = bind[i].second;
         Value val = expr->eval(env);
         new_env = extend(str, val, new_env);
     }
-    Quote* qu = dynamic_cast<Quote*>(body.get());
-    return qu->s->parse(new_env)->eval(new_env);
+    return body ->eval(new_env);
 }
 
 Value Lambda::eval(Assoc &env) { // lambda expression
@@ -34,17 +34,17 @@ Value Apply::eval(Assoc &e) { // for function calling
     Value val = rator->eval(e);
     if(Closure* clos = dynamic_cast<Closure*>(val.get())) {
         int size = clos->parameters.size();
-        std::cout<<size<<std::endl;
-        std::cout<<rand.size()<<std::endl;
         if(size != rand.size()) {
             throw RuntimeError("");
         }
-        Assoc e_tmp = e;
-        for(int i = 0;i < size;++i){
-            e_tmp = extend(clos->parameters[i],rand[i]->eval(e_tmp),e_tmp);
+        Assoc e_tmp = clos->env;
+        for(int i = 0;i < size;++i) {
+            e_tmp = extend(clos->parameters[i],rand[i]->eval(e),e_tmp);
         }
         if(Var* var = dynamic_cast<Var*>(clos -> e.get())) {
-            if(primitives.count(var -> x)) {
+            if(find(var->x,e_tmp).get()) {
+
+            }else if(primitives.count(var -> x)) {
                 if(rand.size() == 2) {
                     if(primitives[var -> x] == E_MUL) {
                         return Mult(rand[0],rand[1]).eval(e_tmp);
@@ -69,7 +69,7 @@ Value Apply::eval(Assoc &e) { // for function calling
                     }
                 }else if(rand.size() == 1) {
                     if(primitives[var -> x] == E_BOOLQ) {
-                        return IsBoolean(rand[0]).eval(e_tmp);
+                        return Expr(new IsBoolean(rand[0])) -> eval(e_tmp);
                     }else if(primitives[var -> x] == E_INTQ) {
                         return IsFixnum(rand[0]).eval(e_tmp);
                     }else if(primitives[var -> x] == E_NULLQ) {
@@ -83,9 +83,9 @@ Value Apply::eval(Assoc &e) { // for function calling
                     }else if(primitives[var -> x] == E_NOT) {
                         return Not(rand[0]).eval(e_tmp);
                     }else if(primitives[var -> x] == E_CAR) {
-                        return Car(rand[0]).eval(e_tmp);
+                        return Expr(new Car(rand[0])) -> eval(e_tmp);
                     }else if(primitives[var -> x] == E_CDR) {
-                        return Cdr(rand[0]).eval(e_tmp);
+                        return Expr(new Cdr(rand[0])) -> eval(e_tmp);
                     }
                 }else if(rand.size() == 0) {
                     if(primitives[var -> x] == E_EXIT) {
@@ -96,20 +96,39 @@ Value Apply::eval(Assoc &e) { // for function calling
                 }
             }
         }
-        return clos->e->eval(e_tmp);
+        return (clos->e)->eval(e_tmp);
     }
     throw RuntimeError("");
 }
 
 Value Letrec::eval(Assoc &env) { // letrec expression
-    return Value(nullptr);
+    Assoc new_env = env;
+    int size = bind.size();
+    for(int i = 0;i < size;++i) {
+        std::string &str = bind[i].first;
+        Expr &expr = bind[i].second;
+        env = extend(str, Value(nullptr), env);
+    }
+    std::vector<Value> val_v;
+
+    for(int i = 0;i < size;++i) {
+        std::string &str = bind[i].first;
+        Expr &expr = bind[i].second;
+        Value val = expr->eval(env);
+        val_v.push_back(val);
+    }
+    for(int i = 0;i < size;++i) {
+        std::string &str = bind[i].first;
+        modify(str, val_v[i], env);
+    }
+    Value body_value1 = body ->eval(env);
+    env = new_env;
+    return body_value1;
 }
 
 Value Var::eval(Assoc &e) { // evaluation of variable
-    if(x[0] == '.'||(x[0] == '@'||x[0] - '0' >= 0 &&x[0] - '0' <=9)) {
-        throw RuntimeError("");
-    }
-    if(find(x,e).get()) {
+    Value val = find(x,e);
+    if(val.get()) {
         return find(x,e);
     }else if(primitives.count(x)) {
         std::vector<std::string> v;
@@ -139,8 +158,10 @@ Value If::eval(Assoc &e) { // if expression
         }else {
             return alter->eval(e);
         }
+    }else if(Integer* in = dynamic_cast<Integer*>(val.get())) {
+        return conseq->eval(e);
     }
-    throw RuntimeError("");
+    return conseq->eval(e);
 }
 
 // -> Boolean
@@ -153,7 +174,7 @@ Value False::eval(Assoc &e) { // evaluation of #f
 
 Value Begin::eval(Assoc &e) { // begin expression
     if(es.empty()) {
-        return SymbolV("Unspecified return value");
+        return NullV();
     }
     for(int i = 1;i < es.size();++i) {
         es[i]->eval(e);
@@ -175,16 +196,13 @@ Value Quote::eval(Assoc &e) { // quote expression
             return NullV();
         }
         Syntax syntax_tmp = list_->stxs[0];
-        list_->stxs.erase(list_->stxs.begin());
-        if(list_->stxs.size() >= 1) {
-            List list_1 = *list_;
-            List* list_ptr = new List(list_1);
-            return PairV(Quote(syntax_tmp).eval(e),Quote(list_ptr).eval(e));
-        }else if(list_->stxs.size() == 0) {
-            return PairV(Quote(syntax_tmp).eval(e),NullV());
-        }
-    } 
-    throw RuntimeError("");
+        List rest_list = *list_;
+        rest_list.stxs.erase(rest_list.stxs.begin());
+        List* list_ptr = new List(rest_list);
+        return PairV(Quote(syntax_tmp).eval(e),Quote(list_ptr).eval(e));
+    }else {
+        return s->parse(e)->eval(e);
+    }
 }
 
 Value MakeVoid::eval(Assoc &e) { // (void)
@@ -234,48 +252,63 @@ Value Minus::evalRator(const Value &rand1, const Value &rand2) { // -
 }
 
 Value Less::evalRator(const Value &rand1, const Value &rand2) { // <
-    Integer* num1 = dynamic_cast<Integer*>(rand1.get());
-    Integer* num2 = dynamic_cast<Integer*>(rand2.get());
-    if(num1->n < num2->n) {
-        return Value(BooleanV(true));
+    if(Integer* num1 = dynamic_cast<Integer*>(rand1.get())) {
+        if(Integer* num2 = dynamic_cast<Integer*>(rand2.get())) {
+            if(num1->n < num2->n) {
+                return BooleanV(true);
+            }
+            return BooleanV(false);
+        }
     }
-    return Value(BooleanV(false));
+    throw RuntimeError("");
 }
 
 Value LessEq::evalRator(const Value &rand1, const Value &rand2) { // <=
-    Integer* num1 = dynamic_cast<Integer*>(rand1.get());
-    Integer* num2 = dynamic_cast<Integer*>(rand2.get());
-    if(num1->n <= num2->n) {
-        return Value(BooleanV(true));
+    if(Integer* num1 = dynamic_cast<Integer*>(rand1.get())) {
+        if(Integer* num2 = dynamic_cast<Integer*>(rand2.get())) {
+            if(num1->n <= num2->n) {
+                return BooleanV(true);
+            }
+            return BooleanV(false);
+        }
     }
-    return Value(BooleanV(false));
+    throw RuntimeError("");
 }
 
 Value Equal::evalRator(const Value &rand1, const Value &rand2) { // =
-    Integer* num1 = dynamic_cast<Integer*>(rand1.get());
-    Integer* num2 = dynamic_cast<Integer*>(rand2.get());
-    if(num1->n == num2->n) {
-        return Value(BooleanV(true));
+    if(Integer* num1 = dynamic_cast<Integer*>(rand1.get())) {
+        if(Integer* num2 = dynamic_cast<Integer*>(rand2.get())) {
+            if(num1->n == num2->n) {
+                return BooleanV(true);
+            }
+            return BooleanV(false);
+        }
     }
-    return Value(BooleanV(false));
+    throw RuntimeError("");
 }
 
 Value GreaterEq::evalRator(const Value &rand1, const Value &rand2) { // >=
-    Integer* num1 = dynamic_cast<Integer*>(rand1.get());
-    Integer* num2 = dynamic_cast<Integer*>(rand2.get());
-    if(num1->n >= num2->n) {
-        return Value(BooleanV(true));
+    if(Integer* num1 = dynamic_cast<Integer*>(rand1.get())) {
+        if(Integer* num2 = dynamic_cast<Integer*>(rand2.get())) {
+            if(num1->n >= num2->n) {
+                return BooleanV(true);
+            }
+            return BooleanV(false);
+        }
     }
-    return Value(BooleanV(false));
+    throw RuntimeError("");
 }
 
 Value Greater::evalRator(const Value &rand1, const Value &rand2) { // >
-    Integer* num1 = dynamic_cast<Integer*>(rand1.get());
-    Integer* num2 = dynamic_cast<Integer*>(rand2.get());
-    if(num1->n > num2->n) {
-        return Value(BooleanV(true));
+    if(Integer* num1 = dynamic_cast<Integer*>(rand1.get())) {
+        if(Integer* num2 = dynamic_cast<Integer*>(rand2.get())) {
+            if(num1->n > num2->n) {
+                return BooleanV(true);
+            }
+            return BooleanV(false);
+        }
     }
-    return Value(BooleanV(false));
+    throw RuntimeError("");
 }
 
 Value IsEq::evalRator(const Value &rand1, const Value &rand2) { // eq?
@@ -302,9 +335,15 @@ Value IsEq::evalRator(const Value &rand1, const Value &rand2) { // eq?
     }
     if(Pair* pai1 = dynamic_cast<Pair*>(rand1.get())) {
         Pair* pai2 = dynamic_cast<Pair*>(rand2.get());
-        if(&pai1 == &pai2) {
+        if(pai1 == pai2) {
             return BooleanV(true);
         }
+    }
+    if(Boolean* tr1 = dynamic_cast<Boolean*>(rand1.get())) {
+        return BooleanV(true);
+    }
+    if(rand1.get() == rand2.get()) {
+        return BooleanV(true);
     }
     return BooleanV(false);
 }
@@ -356,12 +395,10 @@ Value IsProcedure::evalRator(const Value &rand) { // procedure?
 }
 
 Value Not::evalRator(const Value &rand) { // not
-    if(rand->v_type == V_INT) {
-        return BooleanV(false);
-    }else if(Boolean* boo = dynamic_cast<Boolean*>(rand.get())) {
+    if(Boolean* boo = dynamic_cast<Boolean*>(rand.get())) {
         return BooleanV(!boo->b);
     }
-    throw RuntimeError("");
+    return BooleanV(false);
 }
 
 Value Car::evalRator(const Value &rand) { // car
@@ -373,11 +410,15 @@ Value Car::evalRator(const Value &rand) { // car
 
 Value Cdr::evalRator(const Value &rand) { // cdr
     if(Pair* pa = dynamic_cast<Pair*>(rand.get())) {
-        Pair* pa1 = pa; 
-        while(Pair* pa1 = dynamic_cast<Pair*>(pa->cdr.get())) {
-            pa = pa1;
+        Pair* pa1 = pa;
+        if(Pair* pa1 = dynamic_cast<Pair*>(pa->cdr.get())) {
+            if(Symbol* sym = dynamic_cast<Symbol*>(pa1->car.get())) {
+                if(sym->s == ".") {
+                    return pa1->cdr;
+                }
+            }
         }
-        return pa->car;
+        return pa->cdr;
     }
     throw RuntimeError("");
 }

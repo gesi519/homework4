@@ -71,58 +71,12 @@ Expr List :: parse(Assoc &env) {
                 rand.push_back(list_->stxs[i].parse(env));
             }
             return Expr(new Apply(expr,rand));
-        }
-
-
-        if(str == "exit"){
-            return Expr(new Exit());
-        }else if(str == "+"|| str == "-" || str == "*") {
-            if(n != 3) {    // 默认操作符之后只有两个数字
-                throw RuntimeError("");
-            }
-            
-            // if(str == "+") {
-            //     return Expr(new Plus(content[0],content [1]));
-            // }else if (str == "-") {
-            //     return Expr(new Minus(content[0],content [1]));
-            // }else if (str == "*") {
-            //     return Expr(new Mult(content[0],content [1]));
-            // }
         }else if(str == "quote") {
             if(n != 2) {    // 默认操作符之后只有1个成员
                 throw RuntimeError("");
             }
             Syntax syntax_tmp = list_ -> stxs[1];
             return Expr(new Quote(syntax_tmp));
-        }else if(str == "void") {
-            return Expr(new MakeVoid());
-        }else if(str == "cons") {
-            if(n != 3) {    // 默认操作符之后只有两个数字
-                throw RuntimeError("");
-            }
-            for(int i = 1;i < n; ++i) {
-                content.push_back((list_ -> stxs[i]).get() ->parse(env));
-            }
-            return Expr(new Cons(content[0],content[1]));
-        }else if(str == "cdr") {
-            if(n != 2) {    
-                throw RuntimeError("");
-            }
-            if(List* list_1 =dynamic_cast<List*>(list_->stxs[1].get())) {
-                return Expr(new Cdr(list_1->parse(env)));
-            }
-        }else if(str == "car") {
-            if(n != 2) {    // 默认操作符之后只有1个成员
-                throw RuntimeError("");
-            }
-            if(List* list_1 =dynamic_cast<List*>(list_->stxs[1].get())) {
-                return Expr(new Car(list_1->parse(env)));
-            }
-        }else if(str == "begin") {
-            for(int i = 1;i < n;++i) {
-                content.push_back(list_ -> stxs[i].parse(env));
-            }
-            return Expr(new Begin(content));
         }else if(str == "if") {
             if(n != 4) {
                 throw RuntimeError("");
@@ -131,104 +85,33 @@ Expr List :: parse(Assoc &env) {
                 content.push_back(list_ -> stxs[i].parse(env));
             }
             return Expr(new If(content[0],content[1],content[2]));
-        }else if(str == "<") {
+        }else if(str == "let") {
             if(n != 3) {
                 throw RuntimeError("");
             }
-            for(int i = 1;i < n;++i) {
-                content.push_back(list_ -> stxs[i].parse(env));
-                if(content.back()->e_type != E_FIXNUM) {
-                    throw RuntimeError("");
+            std::vector<std::pair<std::string, Expr>> bind;
+            if(List* list_l = dynamic_cast<List*>(list_->stxs[1].get())) {
+                int size = list_l->stxs.size();
+                for(int i = 0;i < size; ++i) {
+                    if(List* list_li = dynamic_cast<List*>(list_l->stxs[i].get())) {
+                        int size_2 = list_li->stxs.size();
+                        if(size_2 != 2) {
+                            throw RuntimeError("");
+                        }
+                        if(Identifier* iden = dynamic_cast<Identifier*>(list_li->stxs[0].get())) {
+                            bind.push_back({iden->s,list_li->stxs[1].parse(env)});
+                        }
+                    }
                 }
             }
-            return Expr(new Less(content[0],content[1]));
-        }else if(str == "<=") {
-            if(n != 3) {
-                throw RuntimeError("");
-            }
+            Expr body = list_->stxs[2]->parse(env);
+            //Expr body = Expr(new Quote(list_->stxs[2]));
+            return Expr(new Let(bind,body));
+        }else if(str == "begin") {
             for(int i = 1;i < n;++i) {
                 content.push_back(list_ -> stxs[i].parse(env));
-                if(content.back()->e_type != E_FIXNUM) {
-                    throw RuntimeError("");
-                }
             }
-            return Expr(new LessEq(content[0],content[1]));
-        }else if(str == "=") {
-            if(n != 3) {
-                throw RuntimeError("");
-            }
-            for(int i = 1;i < n;++i) {
-                content.push_back(list_ -> stxs[i].parse(env));
-                if(content.back()->e_type != E_FIXNUM) {
-                    throw RuntimeError("");
-                }
-            }
-            return Expr(new Equal(content[0],content[1]));
-        }else if(str == ">=") {
-            if(n != 3) {
-                throw RuntimeError("");
-            }
-            for(int i = 1;i < n;++i) {
-                content.push_back(list_ -> stxs[i].parse(env));
-                if(content.back()->e_type != E_FIXNUM) {
-                    throw RuntimeError("");
-                }
-            }
-            return Expr(new GreaterEq(content[0],content[1]));
-        }else if(str == ">") {
-            if(n != 3) {
-                throw RuntimeError("");
-            }
-            for(int i = 1;i < n;++i) {
-                content.push_back(list_ -> stxs[i].parse(env));
-                if(content.back()->e_type != E_FIXNUM) {
-                    throw RuntimeError("");
-                }
-            }
-            return Expr(new GreaterEq(content[0],content[1]));
-        }else if(str == "not") {
-            if(n != 2) {
-                throw RuntimeError("");
-            }
-            content.push_back(list_ -> stxs[1].parse(env));
-            return Expr(new Not(content[0]));
-        }else if(str == "fixnum?") {
-            if(n != 2) {
-                throw RuntimeError("");
-            }
-            content.push_back(list_ -> stxs[1].parse(env));
-            return Expr(new IsFixnum(content[0]));
-        }else if(str == "boolean?") {
-            if(n != 2) {
-                throw RuntimeError("");
-            }
-            content.push_back(list_ -> stxs[1].parse(env));
-            return Expr(new IsBoolean(content[0]));
-        }else if(str == "null?") {
-            if(n != 2) {
-                throw RuntimeError("");
-            }
-            content.push_back(list_ -> stxs[1].parse(env));
-            return Expr(new IsNull(content[0]));
-        }else if(str == "pair?") {
-            if(n != 2) {
-                throw RuntimeError("");
-            }
-            content.push_back(list_ -> stxs[1].parse(env));
-            return Expr(new IsPair(content[0]));
-        }else if(str == "symbol?") {
-            if(n != 2) {
-                throw RuntimeError("");
-            }
-            content.push_back(list_ -> stxs[1].parse(env));
-            return Expr(new IsSymbol(content[0]));
-        }else if(str == "eq?") {
-            if(n != 3) {
-                throw RuntimeError("");
-            }
-            content.push_back(list_ -> stxs[1].parse(env));
-            content.push_back(list_ -> stxs[2].parse(env));
-            return Expr(new IsEq(content[0],content[1]));
+            return Expr(new Begin(content));
         }else if(str == "lambda") {
             if(n < 3) {
                 throw RuntimeError("");
@@ -250,10 +133,7 @@ Expr List :: parse(Assoc &env) {
                 es.push_back(list_->stxs[i]->parse(env));
             }
             return Expr(new Lambda(v_str,Expr(new Begin(es))));
-        }else if(str == "let") {
-            if(n != 3) {
-                throw RuntimeError("");
-            }
+        }else if(str == "letrec") {
             std::vector<std::pair<std::string, Expr>> bind;
             if(List* list_l = dynamic_cast<List*>(list_->stxs[1].get())) {
                 int size = list_l->stxs.size();
@@ -269,8 +149,15 @@ Expr List :: parse(Assoc &env) {
                     }
                 }
             }
-            Expr body = Expr(new Quote(list_->stxs[2]));
-            return Expr(new Let(bind,body));
+            Expr body = list_->stxs[2]->parse(env);
+            return Expr(new Letrec(bind,body));
+        }else {
+            Expr expr = operator_Syntax->parse(env);
+            std::vector<Expr> rand;
+            for(int i = 1;i < n;++i) {
+                rand.push_back(list_->stxs[i].parse(env));
+            }
+            return Expr(new Apply(expr,rand));
         }
     }else if (List* transform_Syntax = dynamic_cast<List*>(operator_Syntax)) {
         Expr exp = transform_Syntax->parse(env);
