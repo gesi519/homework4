@@ -12,7 +12,7 @@ struct ExprBase
 {
     ExprType e_type;
     ExprBase(ExprType);
-    virtual Value eval(Assoc &) = 0;
+    virtual Value eval(Assoc &);
     virtual ~ExprBase() = default;
 };
 
