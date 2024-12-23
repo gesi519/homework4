@@ -35,9 +35,6 @@ Expr Identifier :: parse(Assoc &env) {
     if(!std::isalnum(s.back())) {
         return Expr(new Var(s));
     }
-    if (std::regex_match(s, std::regex("^[+-]?\\d*(\\.\\d+)?([eE][+-]?\\d+)?$"))) {
-        return Expr(new Fixnum(std::stof(s)));
-    }
     return Expr(new Var(s));
 }
 
@@ -53,36 +50,39 @@ Expr FalseSyntax :: parse(Assoc &env) {
 
 //这里是对应输入中含有括号的情况
 Expr List :: parse(Assoc &env) {
-    List* list_ =dynamic_cast<List*>(this);
-    int n = list_ -> stxs.size();
+    int n = stxs.size();
     if(n==0) {
         return Expr(new Quote(Syntax(new List)));
     }
-    SyntaxBase* operator_Syntax = (list_ -> stxs[0]).get();
+    Syntax operator_Syntax = stxs[0];
     std::vector<Expr> content;
 
-    if(Identifier* transform_Syntax = dynamic_cast<Identifier*>(operator_Syntax)) {
-        std::string str = transform_Syntax -> s;
-        
+
+    Expr expr = operator_Syntax->parse(env);
+
+    if(expr->e_type ==E_VAR) {
+        Var* va = dynamic_cast<Var*>(expr.get());
+        string str = va->x;
+
         if(primitives.count(str)) {
             Expr expr = operator_Syntax->parse(env);
             std::vector<Expr> rand;
             for(int i = 1;i < n;++i) {
-                rand.push_back(list_->stxs[i].parse(env));
+                rand.push_back(stxs[i].parse(env));
             }
             return Expr(new Apply(expr,rand));
         }else if(str == "quote") {
             if(n != 2) {    // 默认操作符之后只有1个成员
                 throw RuntimeError("");
             }
-            Syntax syntax_tmp = list_ -> stxs[1];
+            Syntax syntax_tmp = stxs[1];
             return Expr(new Quote(syntax_tmp));
         }else if(str == "if") {
             if(n != 4) {
                 throw RuntimeError("");
             }
             for(int i = 1;i < n;++i) {
-                content.push_back(list_ -> stxs[i].parse(env));
+                content.push_back(stxs[i].parse(env));
             }
             return Expr(new If(content[0],content[1],content[2]));
         }else if(str == "let") {
@@ -90,7 +90,7 @@ Expr List :: parse(Assoc &env) {
                 throw RuntimeError("");
             }
             std::vector<std::pair<std::string, Expr>> bind;
-            if(List* list_l = dynamic_cast<List*>(list_->stxs[1].get())) {
+            if(List* list_l = dynamic_cast<List*>(stxs[1].get())) {
                 int size = list_l->stxs.size();
                 for(int i = 0;i < size; ++i) {
                     if(List* list_li = dynamic_cast<List*>(list_l->stxs[i].get())) {
@@ -104,12 +104,12 @@ Expr List :: parse(Assoc &env) {
                     }
                 }
             }
-            Expr body = list_->stxs[2]->parse(env);
+            Expr body = stxs[2]->parse(env);
             //Expr body = Expr(new Quote(list_->stxs[2]));
             return Expr(new Let(bind,body));
         }else if(str == "begin") {
             for(int i = 1;i < n;++i) {
-                content.push_back(list_ -> stxs[i].parse(env));
+                content.push_back(stxs[i].parse(env));
             }
             return Expr(new Begin(content));
         }else if(str == "lambda") {
@@ -117,7 +117,7 @@ Expr List :: parse(Assoc &env) {
                 throw RuntimeError("");
             }
             std::vector<std::string> v_str;
-            if(List* list_1 =dynamic_cast<List*>(list_->stxs[1].get())) {
+            if(List* list_1 =dynamic_cast<List*>(stxs[1].get())) {
                 for(int i = 0;i < list_1->stxs.size();++i) {
                     if(Identifier* ide = dynamic_cast<Identifier*>(list_1->stxs[i].get())) {
                         v_str.push_back(ide->s);
@@ -125,17 +125,17 @@ Expr List :: parse(Assoc &env) {
                     }
                     throw RuntimeError("");
                 }
-            }else if(Identifier* ide =dynamic_cast<Identifier*>(list_->stxs[1].get())) {
+            }else if(Identifier* ide =dynamic_cast<Identifier*>(stxs[1].get())) {
                 v_str.push_back(ide->s);
             }
             std::vector<Expr> es;
-            for(int i = 2;i < list_->stxs.size();++i) {
-                es.push_back(list_->stxs[i]->parse(env));
+            for(int i = 2;i < stxs.size();++i) {
+                es.push_back(stxs[i]->parse(env));
             }
             return Expr(new Lambda(v_str,Expr(new Begin(es))));
         }else if(str == "letrec") {
             std::vector<std::pair<std::string, Expr>> bind;
-            if(List* list_l = dynamic_cast<List*>(list_->stxs[1].get())) {
+            if(List* list_l = dynamic_cast<List*>(stxs[1].get())) {
                 int size = list_l->stxs.size();
                 for(int i = 0;i < size; ++i) {
                     if(List* list_li = dynamic_cast<List*>(list_l->stxs[i].get())) {
@@ -149,21 +149,22 @@ Expr List :: parse(Assoc &env) {
                     }
                 }
             }
-            Expr body = list_->stxs[2]->parse(env);
+            Expr body = stxs[2]->parse(env);
             return Expr(new Letrec(bind,body));
         }else {
             Expr expr = operator_Syntax->parse(env);
             std::vector<Expr> rand;
             for(int i = 1;i < n;++i) {
-                rand.push_back(list_->stxs[i].parse(env));
+                rand.push_back(stxs[i].parse(env));
             }
             return Expr(new Apply(expr,rand));
         }
-    }else if (List* transform_Syntax = dynamic_cast<List*>(operator_Syntax)) {
+    }
+    else if (List* transform_Syntax = dynamic_cast<List*>(operator_Syntax.get())) {
         Expr exp = transform_Syntax->parse(env);
         std::vector<Expr> rand;
         for(int i = 1;i < n;++i) {
-            rand.push_back(list_->stxs[i].parse(env));
+            rand.push_back(stxs[i].parse(env));
         }
         return Expr(new Apply(exp,rand));
     }
