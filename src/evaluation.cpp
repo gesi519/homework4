@@ -194,6 +194,13 @@ Value Quote::eval(Assoc &e) { // quote expression
         List rest_list = *list_;
         rest_list.stxs.erase(rest_list.stxs.begin());
         List* list_ptr = new List(rest_list);
+        if(rest_list.stxs.size() == 2) {
+            if(Identifier* ide = dynamic_cast<Identifier*>(rest_list.stxs[0].get())) {
+                if(ide->s == ".") {
+                    return PairV(Quote(syntax_tmp).eval(e),Quote(rest_list.stxs[1]).eval(e));
+                }
+            }
+        }
         return PairV(Quote(syntax_tmp).eval(e),Quote(list_ptr).eval(e));
     }else {
         return s->parse(e)->eval(e);
