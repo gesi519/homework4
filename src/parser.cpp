@@ -180,12 +180,19 @@ Expr List :: parse(Assoc &env) {
         }
         return Expr(new Begin(content));
     }else if(first->e_type == E_IF) {
+        Assoc env_new = env;
         if(n != 4) {
             throw RuntimeError("");
         }
         std::vector<Expr> content;
+        if(Identifier* ide =dynamic_cast<Identifier*>(stxs[2].get())) {
+            env_new = extend(ide -> s,StringV(""),env_new);
+        }
+        if(Identifier* ide =dynamic_cast<Identifier*>(stxs[3].get())) {
+            env_new = extend(ide -> s,StringV(""),env_new);
+        }
         for(int i = 1;i < n;++i) {
-            content.push_back(stxs[i].parse(env));
+            content.push_back(stxs[i].parse(env_new));
         }
         return Expr(new If(content[0],content[1],content[2]));
     }else if(first->e_type == E_LAMBDA) {
