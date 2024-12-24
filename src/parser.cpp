@@ -3,6 +3,22 @@
 
 // parser of myscheme 
 
+/*
+不知道这算是重构的第几版本了
+
+第一个版本，跟着README做，发现到了运算符（原函数）的再定义就不行了
+
+于是第二版诞生了，我把primitives里的解释全放到了evaluation里了，但是这样埋下了隐患，reserved_words的重载没有解决
+
+由于长时间没有得不到正确答案，我选择瞎猫碰见死耗子，继续重构，我就把严格的把let和leterc的作用域绑定进行，然而因此我大幅度篡改那些不用改的文件，
+如ExprBase 我把它从纯虚函数改成了普通的虚函数
+又如我把没有用到的String类型给补全了，但是还是会有错
+经过长时间的调试，我意识到这样做的话，lambda表达式无法实现不求值以及我也深刻的明白不可能这么大幅度的改那些文件，然后我就改了回来
+
+最后这一版代码诞生了，是它前辈们的杂交成果。同时我发现StringV("")完全可以用NullV()和TerminateV()来代替。检查reserved_words的重载，把primitives当成普通函数和它的实参的组合。
+最后经过不断利用数据和输出调试锁定了是作用域的问题，最后经过了四天什么除了大作业都没有干和之前几天对于第一版的理解，终于写出来了
+*/
+
 #include "value.hpp"
 #include "RE.hpp"
 #include "Def.hpp"
@@ -180,11 +196,7 @@ Expr List :: parse(Assoc &env) {
         }
         return Expr(new Apply(lis ->parse(env),ex_v));
     }
-    std::vector<Expr> ex_v;
-    for(int i = 1;i < n;++i) {
-        ex_v.push_back(stxs[i].get()->parse(env));
-    }
-    return Expr(new Apply(first ->parse(env),ex_v));
+    throw RuntimeError("");
 }
 
 #endif

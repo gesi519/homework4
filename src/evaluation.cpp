@@ -272,6 +272,9 @@ Value Unary::eval(Assoc &e) { // evaluation of single-operator primitive
     return evalRator(rand -> eval(e));
 }
 
+
+//下面的不能用ValueType来辅助判断,我试了试，报错了，不太清除具体原因 (但是加减法好像可以)
+
 Value Mult::evalRator(const Value &rand1, const Value &rand2) { // *
     if(Integer* tmp1 = dynamic_cast<Integer*>(rand1.get())) {
         if(Integer* tmp2 = dynamic_cast<Integer*>(rand2.get())) {
