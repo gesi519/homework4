@@ -159,7 +159,7 @@ Value Var::eval(Assoc &e) { // evaluation of variable
             return ClosureV(v, expr, e);
         }else if(primitives[x] == E_NOT) {
             v.push_back("not");
-            Expr expr = Expr(new Not(new Var("symbolq")));
+            Expr expr = Expr(new Not(new Var("not")));
             return ClosureV(v, expr, e);
         }else if(primitives[x] == E_CAR) {
             v.push_back("car");
