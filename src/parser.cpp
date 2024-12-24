@@ -115,7 +115,7 @@ Expr List :: parse(Assoc &env) {
                                 throw RuntimeError("");
                             }
                             if(Identifier* iden = dynamic_cast<Identifier*>(list_li->stxs[0].get())) {
-                                bind.push_back(mp(iden->s,list_li->stxs[1].parse(env_new)));
+                                bind.push_back(mp(iden->s,list_li->stxs[1].parse(env)));
                                 env_new = extend(iden->s,NullV(),env_new);
                             }else {
                                 throw RuntimeError("");
