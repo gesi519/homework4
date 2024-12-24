@@ -57,7 +57,8 @@ Expr List :: parse(Assoc &env) {
                 ex.push_back(stxs[i]->parse(env));
             }
             return Expr(new Apply(first->parse(env),ex));
-        }else if(reserved_words.count(str)) {
+        }
+        if(reserved_words.count(str)) {
             if(reserved_words[str] == E_QUOTE) {
                 if(n != 2) {
                     throw RuntimeError("");
@@ -66,7 +67,7 @@ Expr List :: parse(Assoc &env) {
             }else if(reserved_words[str] == E_BEGIN) {
                 std::vector<Expr> content;
                 for(int i = 1;i < n;++i) {
-                    content.push_back(stxs[i].parse(env));
+                    content.push_back(stxs[i].get()->parse(env));
                 }
                 return Expr(new Begin(content));
             }else if(reserved_words[str] == E_IF) {
@@ -75,7 +76,7 @@ Expr List :: parse(Assoc &env) {
                 }
                 std::vector<Expr> content;
                 for(int i = 1;i < n;++i) {
-                    content.push_back(stxs[i].parse(env));
+                    content.push_back(stxs[i].get()->parse(env));
                 }
                 return Expr(new If(content[0],content[1],content[2]));
             }else if(reserved_words[str] == E_LAMBDA) {
@@ -86,20 +87,18 @@ Expr List :: parse(Assoc &env) {
                 Assoc env_new = env;
                 if(List* list_ =dynamic_cast<List*>(stxs[1].get())) {
                     for(int i = 0;i < list_->stxs.size();++i) {
-                        if(Identifier* ide = dynamic_cast<Identifier*>(list_->stxs[i].get())) {
-                            v_str.push_back(ide->s);
-                            env_new = extend(ide -> s,StringV(""),env_new);
+                        Expr exp = list_->stxs[i].get()->parse(env);
+                        if(Var* va = dynamic_cast<Var*>(exp.get())) {
+                            v_str.push_back(va->x);
+                            env_new = extend(va->x,StringV(""),env_new);
                             continue;
                         }
                         throw RuntimeError("");
                     }
-                }else if(Identifier* ide =dynamic_cast<Identifier*>(stxs[1].get())) {
-                    v_str.push_back(ide->s);
-                    env_new = extend(ide -> s,StringV(""),env_new);
                 }else {
                     throw RuntimeError("");
                 }
-                Expr ex = stxs[2]->parse(env_new);
+                Expr ex = stxs[2].get()->parse(env_new);
                 return Expr(new Lambda(v_str,ex));
             }else if(reserved_words[str] == E_LET) {
                 if(n != 3) {
@@ -156,7 +155,7 @@ Expr List :: parse(Assoc &env) {
                     for(int i = 0;i < size; ++i) {
                         if(List* list_li = dynamic_cast<List*>(list_l->stxs[i].get())) {
                             if(Identifier* iden = dynamic_cast<Identifier*>(list_li->stxs[0].get())) {
-                                bind.push_back({iden->s,list_li->stxs[1].parse(env_new)});
+                                bind.push_back({iden->s,list_li->stxs[1].get()->parse(env_new)});
                             }
                         }
                     }
@@ -164,7 +163,7 @@ Expr List :: parse(Assoc &env) {
                     throw RuntimeError("");
                 }
                 
-                Expr body = stxs[2]->parse(env_new);
+                Expr body = stxs[2].get()->parse(env_new);
                 return Expr(new Letrec(bind,body));
                 }
             }
@@ -174,16 +173,16 @@ Expr List :: parse(Assoc &env) {
             ex.push_back(stxs[i]->parse(env));
         }
         return new Apply(first->parse(env),ex);
-    }else if(List* ide = dynamic_cast<List*>(first)) {
+    }else if(List* lis = dynamic_cast<List*>(first)) {
         std::vector<Expr> ex_v;
         for(int i = 1;i < n;++i) {
-            ex_v.push_back(stxs[i]->parse(env));
+            ex_v.push_back(stxs[i].get()->parse(env));
         }
-        return Expr(new Apply(first ->parse(env),ex_v));
+        return Expr(new Apply(lis ->parse(env),ex_v));
     }
     std::vector<Expr> ex_v;
     for(int i = 1;i < n;++i) {
-        ex_v.push_back(stxs[i]->parse(env));
+        ex_v.push_back(stxs[i].get()->parse(env));
     }
     return Expr(new Apply(first ->parse(env),ex_v));
 }
