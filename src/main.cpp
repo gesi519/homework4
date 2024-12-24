@@ -10,9 +10,6 @@
 
 extern std :: map<std :: string, ExprType> primitives;
 extern std :: map<std :: string, ExprType> reserved_words;
-extern std :: map<std :: string, ExprType> primitives0;
-extern std :: map<std :: string, ExprType> primitives1;
-extern std :: map<std :: string, ExprType> primitives2;
 void REPL()
 {
     // read - evaluation - print loop

@@ -90,7 +90,7 @@ Expr List :: parse(Assoc &env) {
                         Expr exp = list_->stxs[i].get()->parse(env);
                         if(Var* va = dynamic_cast<Var*>(exp.get())) {
                             v_str.push_back(va->x);
-                            env_new = extend(va->x,StringV(""),env_new);
+                            env_new = extend(va->x,NullV(),env_new);
                             continue;
                         }
                         throw RuntimeError("");
@@ -115,8 +115,8 @@ Expr List :: parse(Assoc &env) {
                                 throw RuntimeError("");
                             }
                             if(Identifier* iden = dynamic_cast<Identifier*>(list_li->stxs[0].get())) {
-                                bind.push_back({iden->s,list_li->stxs[1].parse(env_new)});
-                                env_new = extend(iden->s,StringV(""),env_new);
+                                bind.push_back(mp(iden->s,list_li->stxs[1].parse(env_new)));
+                                env_new = extend(iden->s,NullV(),env_new);
                             }else {
                                 throw RuntimeError("");
                             }
@@ -144,7 +144,7 @@ Expr List :: parse(Assoc &env) {
                                 throw RuntimeError("");
                             }
                             if(Identifier* iden = dynamic_cast<Identifier*>(list_li->stxs[0].get())) {
-                                env_new = extend(iden->s,StringV(""),env_new);
+                                env_new = extend(iden->s,NullV(),env_new);
                             }else {
                                 throw RuntimeError("");
                             }
@@ -155,7 +155,7 @@ Expr List :: parse(Assoc &env) {
                     for(int i = 0;i < size; ++i) {
                         if(List* list_li = dynamic_cast<List*>(list_l->stxs[i].get())) {
                             if(Identifier* iden = dynamic_cast<Identifier*>(list_li->stxs[0].get())) {
-                                bind.push_back({iden->s,list_li->stxs[1].get()->parse(env_new)});
+                                bind.push_back(mp(iden->s,list_li->stxs[1].get()->parse(env_new)));
                             }
                         }
                     }

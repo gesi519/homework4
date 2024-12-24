@@ -86,9 +86,6 @@ void Pair::showCdr(std::ostream &os) {
 void Closure::show(std::ostream &os) {
   os << "#<procedure>";
 }
-void String::show(std::ostream &os) {
-  throw RuntimeError("");
-}
 
 ValueBase :: ValueBase(ValueType vt) : v_type(vt) {}
 
@@ -136,9 +133,4 @@ Closure::Closure(const std::vector<std::string> &xs, const Expr &e, const Assoc 
   : ValueBase(V_PROC), parameters(xs), e(e), env(env) {}
 Value ClosureV(const std::vector<std::string> &xs, const Expr &e, const Assoc &env) {
   return Value(new Closure(xs, e, env));
-}
-
-String::String(const std::string &s) : ValueBase(V_STRING), s(s) {}
-Value StringV(const std::string &s) {
-  return Value(new String(s));
 }
