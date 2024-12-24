@@ -273,7 +273,7 @@ Value Unary::eval(Assoc &e) { // evaluation of single-operator primitive
 }
 
 
-//下面的不能用ValueType来辅助判断,我试了试，报错了，不太清除具体原因 (但是加减法好像可以)
+//下面的不能用ValueType来辅助判断,我试了试，报错了，不太清除具体原因 (但是加减法好像可以) 不对好像可以，好像是我调试的时候直接复制粘贴导致部分函数对应的ValueType没有改
 
 Value Mult::evalRator(const Value &rand1, const Value &rand2) { // *
     if(Integer* tmp1 = dynamic_cast<Integer*>(rand1.get())) {
