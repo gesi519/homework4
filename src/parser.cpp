@@ -19,7 +19,6 @@ using std :: pair;
 extern std :: map<std :: string, ExprType> primitives;
 extern std :: map<std :: string, ExprType> reserved_words;
 
-Value ExprBase :: eval(Assoc &e) { throw RuntimeError("");}
 Expr Syntax :: parse(Assoc &env) {
     return ptr -> parse(env);//自动调用它指向的Syntaxbase
 }
@@ -29,14 +28,7 @@ Expr Number :: parse(Assoc &env) {
 }
 
 Expr Identifier :: parse(Assoc &env) {
-    if (find(s, env).get()){
-        return Expr(new Var(s));
-    }else if (primitives.count(s)) {
-        return Expr(new ExprBase(primitives[s]));
-    }else if(reserved_words.count(s)) {
-        return Expr(new ExprBase(reserved_words[s]));
-    }
-    throw RuntimeError("RuntimeError Identifier");
+    return Expr(new Var(s));
 }
 
 Expr TrueSyntax :: parse(Assoc &env) {
@@ -50,253 +42,150 @@ Expr FalseSyntax :: parse(Assoc &env) {
 //主
 Expr List :: parse(Assoc &env) {
     int n = stxs.size();
-    if(n==0) {
-        return Expr(new Quote(Syntax(new List)));
+    if(n == 0) {
+        throw RuntimeError("");
     }
-    if(List* first = dynamic_cast<List*>(stxs[0].get())) {
-        std::vector<Expr> ex_v;
-        for(int i = 1;i < stxs.size();++i) {
-            ex_v.push_back(stxs[i]->parse(env));
-        }
-        return Expr(new Apply(first ->parse(env),ex_v));
-    }
-    Expr first = stxs[0]->parse(env);
-    //primitives 原生函数
-    if(first -> e_type == E_MUL) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        return Expr(new Mult(stxs[1]->parse(env),stxs[2]->parse(env)));
-    }else if(first -> e_type == E_MINUS) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        return Expr(new Minus(stxs[1]->parse(env),stxs[2]->parse(env)));
-    }else if(first -> e_type == E_PLUS) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        return Expr(new Plus(stxs[1]->parse(env),stxs[2]->parse(env)));
-    }else if(first -> e_type == E_LT) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        return Expr(new Less(stxs[1]->parse(env),stxs[2]->parse(env)));
-    }else if(first -> e_type == E_LE) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        return Expr(new LessEq(stxs[1]->parse(env),stxs[2]->parse(env)));
-    }else if(first -> e_type == E_EQ) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        return Expr(new Equal(stxs[1]->parse(env),stxs[2]->parse(env)));
-    }else if(first -> e_type == E_GE) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        return Expr(new GreaterEq(stxs[1]->parse(env),stxs[2]->parse(env)));
-    }else if(first -> e_type == E_GT) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        return Expr(new Greater(stxs[1]->parse(env),stxs[2]->parse(env)));
-    }else if(first -> e_type == E_EQQ) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        return Expr(new IsEq(stxs[1]->parse(env),stxs[2]->parse(env)));
-    }else if(first -> e_type == E_CONS) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        return Expr(new Cons(stxs[1]->parse(env),stxs[2]->parse(env)));
-    }else if(first -> e_type == E_BOOLQ) {
-        if(n != 2) {
-            throw RuntimeError("");
-        }
-        return Expr(new IsBoolean(stxs[1]->parse(env)));
-    }else if(first -> e_type == E_INTQ) {
-        if(n != 2) {
-            throw RuntimeError("");
-        }
-        return Expr(new IsFixnum(stxs[1]->parse(env)));
-    }else if(first -> e_type == E_NULLQ) {
-        if(n != 2) {
-            throw RuntimeError("");
-        }
-        return Expr(new IsNull(stxs[1]->parse(env)));
-    }else if(first -> e_type == E_PAIRQ) {
-        if(n != 2) {
-            throw RuntimeError("");
-        }
-        return Expr(new IsPair(stxs[1]->parse(env)));
-    }else if(first -> e_type == E_PROCQ) {
-        if(n != 2) {
-            throw RuntimeError("");
-        }
-        return Expr(new IsProcedure(stxs[1]->parse(env)));
-    }else if(first -> e_type == E_SYMBOLQ) {
-        if(n != 2) {
-            throw RuntimeError("");
-        }
-        return Expr(new IsSymbol(stxs[1]->parse(env)));
-    }else if(first -> e_type == E_NOT) {
-        if(n != 2) {
-            throw RuntimeError("");
-        }
-        return Expr(new Not(stxs[1]->parse(env)));
-    }else if(first -> e_type == E_CAR) {
-        if(n != 2) {
-            throw RuntimeError("");
-        }
-        return Expr(new Car(stxs[1]->parse(env)));
-    }else if(first -> e_type == E_CDR) {
-        if(n != 2) {
-            throw RuntimeError("");
-        }
-        return Expr(new Cdr(stxs[1]->parse(env)));
-    }else if(first -> e_type == E_EXIT) {
-        if(n != 1) {
-            throw RuntimeError("");
-        }
-        return Expr(new Exit());
-    }else if(first -> e_type == E_VOID) {
-        if(n != 1) {
-            throw RuntimeError("");
-        }
-        return Expr(new MakeVoid());
-    }//reserved_words 类型
-    else if(first->e_type == E_QUOTE) {
-        if(n != 2) {
-            throw RuntimeError("");
-        }
-        return Expr(new Quote(stxs[1]));
-    }else if(first->e_type == E_BEGIN) {
-        std::vector<Expr> content;
-        for(int i = 1;i < n;++i) {
-            content.push_back(stxs[i].parse(env));
-        }
-        return Expr(new Begin(content));
-    }else if(first->e_type == E_IF) {
-        Assoc env_new = env;
-        if(n != 4) {
-            throw RuntimeError("");
-        }
-        std::vector<Expr> content;
-        if(Identifier* ide =dynamic_cast<Identifier*>(stxs[2].get())) {
-            env_new = extend(ide -> s,StringV(""),env_new);
-        }
-        if(Identifier* ide =dynamic_cast<Identifier*>(stxs[3].get())) {
-            env_new = extend(ide -> s,StringV(""),env_new);
-        }
-        for(int i = 1;i < n;++i) {
-            content.push_back(stxs[i].parse(env_new));
-        }
-        return Expr(new If(content[0],content[1],content[2]));
-    }else if(first->e_type == E_LAMBDA) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        std::vector<std::string> v_str;
-        Assoc env_new = env;
-        if(List* list_ =dynamic_cast<List*>(stxs[1].get())) {
-            for(int i = 0;i < list_->stxs.size();++i) {
-                if(Identifier* ide = dynamic_cast<Identifier*>(list_->stxs[i].get())) {
-                    v_str.push_back(ide->s);
-                    env_new = extend(ide -> s,StringV(""),env_new);
-                    continue;
-                }
-                throw RuntimeError("");
+
+    SyntaxBase* first = stxs[0].get();
+
+    if(Identifier* ide = dynamic_cast<Identifier*>(first)) {
+        std::string str = ide->s;
+        Value val = find(str,env);
+        if(val.get() != nullptr) { //变量已经被绑定了
+            std::vector<Expr> ex;
+            for(int i = 1;i < n;++i) {
+                ex.push_back(stxs[i]->parse(env));
             }
-        }else if(Identifier* ide =dynamic_cast<Identifier*>(stxs[1].get())) {
-            v_str.push_back(ide->s);
-            env_new = extend(ide -> s,StringV(""),env_new);
-        }
-        Expr ex = stxs[2]->parse(env_new);
-        return Expr(new Lambda(v_str,ex));
-    }else if(first->e_type == E_LET) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        Assoc env_new = env;
-        std::vector<std::pair<std::string, Expr>> bind;
-        if(List* list_l = dynamic_cast<List*>(stxs[1].get())) {
-            int size = list_l->stxs.size();
-            for(int i = 0;i < size; ++i) {
-                if(List* list_li = dynamic_cast<List*>(list_l->stxs[i].get())) {
-                    int size_2 = list_li->stxs.size();
-                    if(size_2 != 2) {
+            return Expr(new Apply(first->parse(env),ex));
+        }else if(reserved_words.count(str)) {
+            if(reserved_words[str] == E_QUOTE) {
+                if(n != 2) {
+                    throw RuntimeError("");
+                }
+                return Expr(new Quote(stxs[1]));
+            }else if(reserved_words[str] == E_BEGIN) {
+                std::vector<Expr> content;
+                for(int i = 1;i < n;++i) {
+                    content.push_back(stxs[i].parse(env));
+                }
+                return Expr(new Begin(content));
+            }else if(reserved_words[str] == E_IF) {
+                if(n != 4) {
+                    throw RuntimeError("");
+                }
+                std::vector<Expr> content;
+                for(int i = 1;i < n;++i) {
+                    content.push_back(stxs[i].parse(env));
+                }
+                return Expr(new If(content[0],content[1],content[2]));
+            }else if(reserved_words[str] == E_LAMBDA) {
+                if(n != 3) {
+                    throw RuntimeError("");
+                }
+                std::vector<std::string> v_str;
+                Assoc env_new = env;
+                if(List* list_ =dynamic_cast<List*>(stxs[1].get())) {
+                    for(int i = 0;i < list_->stxs.size();++i) {
+                        if(Identifier* ide = dynamic_cast<Identifier*>(list_->stxs[i].get())) {
+                            v_str.push_back(ide->s);
+                            env_new = extend(ide -> s,StringV(""),env_new);
+                            continue;
+                        }
                         throw RuntimeError("");
                     }
-                    if(Identifier* iden = dynamic_cast<Identifier*>(list_li->stxs[0].get())) {
-                        env_new = extend(iden->s,StringV(""),env_new);
-                        bind.push_back({iden->s,list_li->stxs[1].parse(env_new)});
-                        
-                    }else {
-                        throw RuntimeError("");
+                }else if(Identifier* ide =dynamic_cast<Identifier*>(stxs[1].get())) {
+                    v_str.push_back(ide->s);
+                    env_new = extend(ide -> s,StringV(""),env_new);
+                }else {
+                    throw RuntimeError("");
+                }
+                Expr ex = stxs[2]->parse(env_new);
+                return Expr(new Lambda(v_str,ex));
+            }else if(reserved_words[str] == E_LET) {
+                if(n != 3) {
+                    throw RuntimeError("");
+                }
+                Assoc env_new = env;
+                std::vector<std::pair<std::string, Expr>> bind;
+                if(List* list_l = dynamic_cast<List*>(stxs[1].get())) {
+                    int size = list_l->stxs.size();
+                    for(int i = 0;i < size; ++i) {
+                        if(List* list_li = dynamic_cast<List*>(list_l->stxs[i].get())) {
+                            int size_2 = list_li->stxs.size();
+                            if(size_2 != 2) {
+                                throw RuntimeError("");
+                            }
+                            if(Identifier* iden = dynamic_cast<Identifier*>(list_li->stxs[0].get())) {
+                                bind.push_back({iden->s,list_li->stxs[1].parse(env_new)});
+                                env_new = extend(iden->s,StringV(""),env_new);
+                            }else {
+                                throw RuntimeError("");
+                            }
+                        }else {
+                            throw RuntimeError("");
+                        }
                     }
                 }else {
                     throw RuntimeError("");
                 }
-            }
-        }else {
-            throw RuntimeError("");
-        }
-        Expr body = stxs[2]->parse(env_new);
-        return Expr(new Let(bind,body));
-    }else if(first->e_type == E_LETREC) {
-        if(n != 3) {
-            throw RuntimeError("");
-        }
-        Assoc env_new = env;
-        std::vector<std::pair<std::string, Expr>> bind;
-            if(List* list_l = dynamic_cast<List*>(stxs[1].get())) {
-                int size = list_l->stxs.size();
-                for(int i = 0;i < size; ++i) {
-                    if(List* list_li = dynamic_cast<List*>(list_l->stxs[i].get())) {
-                        int size_2 = list_li->stxs.size();
-                        if(size_2 != 2) {
-                            throw RuntimeError("");
-                        }
-                        if(Identifier* iden = dynamic_cast<Identifier*>(list_li->stxs[0].get())) {
-                            env_new = extend(iden->s,StringV(""),env_new);
+                Expr body = stxs[2]->parse(env_new);
+                return Expr(new Let(bind,body));
+            }else if(reserved_words[str] == E_LETREC) {
+                if(n != 3) {
+                    throw RuntimeError("");
+                }
+                Assoc env_new = env;
+                std::vector<std::pair<std::string, Expr>> bind;
+                if(List* list_l = dynamic_cast<List*>(stxs[1].get())) {
+                    int size = list_l->stxs.size();
+                    for(int i = 0;i < size; ++i) {
+                        if(List* list_li = dynamic_cast<List*>(list_l->stxs[i].get())) {
+                            int size_2 = list_li->stxs.size();
+                            if(size_2 != 2) {
+                                throw RuntimeError("");
+                            }
+                            if(Identifier* iden = dynamic_cast<Identifier*>(list_li->stxs[0].get())) {
+                                env_new = extend(iden->s,StringV(""),env_new);
+                            }else {
+                                throw RuntimeError("");
+                            }
                         }else {
                             throw RuntimeError("");
                         }
-                    }else {
-                        throw RuntimeError("");
                     }
-                }
-            }else {
-                throw RuntimeError("");
-            }
-            if(List* list_l = dynamic_cast<List*>(stxs[1].get())) {
-                int size = list_l->stxs.size();
-                for(int i = 0;i < size; ++i) {
-                    if(List* list_li = dynamic_cast<List*>(list_l->stxs[i].get())) {
-                        int size_2 = list_li->stxs.size();
-                        if(size_2 != 2) {
-                            throw RuntimeError("");
-                        }
-                        if(Identifier* iden = dynamic_cast<Identifier*>(list_li->stxs[0].get())) {
-                            bind.push_back({iden->s,list_li->stxs[1].parse(env_new)});
+                    for(int i = 0;i < size; ++i) {
+                        if(List* list_li = dynamic_cast<List*>(list_l->stxs[i].get())) {
+                            if(Identifier* iden = dynamic_cast<Identifier*>(list_li->stxs[0].get())) {
+                                bind.push_back({iden->s,list_li->stxs[1].parse(env_new)});
+                            }
                         }
                     }
+                }else {
+                    throw RuntimeError("");
+                }
+                
+                Expr body = stxs[2]->parse(env_new);
+                return Expr(new Letrec(bind,body));
                 }
             }
-            Expr body = stxs[2]->parse(env_new);
-            return Expr(new Letrec(bind,body));
-    }else if(first->e_type == E_VAR) {
+
+        vector<Expr> ex;  
+        for (int i = 1; i < n; ++i) {
+            ex.push_back(stxs[i]->parse(env));
+        }
+        return new Apply(first->parse(env),ex);
+    }else if(List* ide = dynamic_cast<List*>(first)) {
         std::vector<Expr> ex_v;
-        for(int i = 1;i < stxs.size();++i) {
+        for(int i = 1;i < n;++i) {
             ex_v.push_back(stxs[i]->parse(env));
         }
-        return Expr(new Apply(first,ex_v));
+        return Expr(new Apply(first ->parse(env),ex_v));
     }
-
-    throw RuntimeError("RuntimeError List");
+    std::vector<Expr> ex_v;
+    for(int i = 1;i < n;++i) {
+        ex_v.push_back(stxs[i]->parse(env));
+    }
+    return Expr(new Apply(first ->parse(env),ex_v));
 }
 
 #endif

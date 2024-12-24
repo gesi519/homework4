@@ -13,12 +13,27 @@ extern std :: map<std :: string, ExprType> primitives0;
 extern std :: map<std :: string, ExprType> primitives1;
 extern std :: map<std :: string, ExprType> primitives2;
 
+
+void checkname(std::string& str) {
+    if(str.empty()) {
+        throw RuntimeError("");
+    }
+    if(std::isdigit(str[0]) || str[0] == '.' || str[0] == '@')
+        throw RuntimeError("");
+    for (int i = 0; i < str.size(); i++) {
+        if (str[i] == '#') {
+            throw RuntimeError("");
+        }
+    }
+    return;
+}
+
 Value Let::eval(Assoc &env) { // let expression
     Assoc new_env = env;
     int size = bind.size();
     for(int i = 0;i < size;++i) {
-
         std::string &str = bind[i].first;
+        checkname(str);
         Expr &expr = bind[i].second;
         Value val = expr->eval(env);
         new_env = extend(str, val, new_env);
@@ -42,62 +57,6 @@ Value Apply::eval(Assoc &e) { // for function calling
         for(int i = 0;i < size;++i) {
             e_tmp = extend(clos->parameters[i],rand[i]->eval(e),e_tmp);
         }
-        if(clos->e->e_type == E_VAR) {
-            Var* var = dynamic_cast<Var*>(clos -> e.get());
-            if(find(var->x,e_tmp).get()) {
-
-            }else if(primitives.count(var -> x)) {
-                if(rand.size() == 2) {
-                    if(primitives[var -> x] == E_MUL) {
-                        return Mult(rand[0],rand[1]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_MINUS) {
-                        return Minus(rand[0],rand[1]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_PLUS) {
-                        return Plus(rand[0],rand[1]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_LT) {
-                        return Less(rand[0],rand[1]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_LE) {
-                        return LessEq(rand[0],rand[1]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_EQ) {
-                        return Equal(rand[0],rand[1]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_GE) {
-                        return GreaterEq(rand[0],rand[1]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_GT) {
-                        return Greater(rand[0],rand[1]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_EQQ) {
-                        return IsEq(rand[0],rand[1]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_CONS) {
-                        return Cons(rand[0],rand[1]).eval(e_tmp);
-                    }
-                }else if(rand.size() == 1) {
-                    if(primitives[var -> x] == E_BOOLQ) {
-                        return Expr(new IsBoolean(rand[0])) -> eval(e_tmp);
-                    }else if(primitives[var -> x] == E_INTQ) {
-                        return IsFixnum(rand[0]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_NULLQ) {
-                        return IsNull(rand[0]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_PAIRQ) {
-                        return IsPair(rand[0]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_PROCQ) {
-                        return IsProcedure(rand[0]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_SYMBOLQ) {
-                        return IsSymbol(rand[0]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_NOT) {
-                        return Not(rand[0]).eval(e_tmp);
-                    }else if(primitives[var -> x] == E_CAR) {
-                        return Expr(new Car(rand[0])) -> eval(e_tmp);
-                    }else if(primitives[var -> x] == E_CDR) {
-                        return Expr(new Cdr(rand[0])) -> eval(e_tmp);
-                    }
-                }else if(rand.size() == 0) {
-                    if(primitives[var -> x] == E_EXIT) {
-                        return Exit().eval(e_tmp);
-                    }else if(primitives[var -> x] == E_VOID) {
-                        return MakeVoid().eval(e_tmp);
-                    }
-                }
-            }
-        }
         return (clos->e)->eval(e_tmp);
     }
     throw RuntimeError("");
@@ -108,42 +67,130 @@ Value Letrec::eval(Assoc &env) { // letrec expression
     int size = bind.size();
     for(int i = 0;i < size;++i) {
         std::string &str = bind[i].first;
+        checkname(str);
         Expr &expr = bind[i].second;
-        env = extend(str, Value(nullptr), env);
+        env = extend(str, Value(nullptr), new_env);
     }
     std::vector<Value> val_v;
-
     for(int i = 0;i < size;++i) {
         std::string &str = bind[i].first;
         Expr &expr = bind[i].second;
-        Value val = expr->eval(env);
+        Value val = expr->eval(new_env);
         val_v.push_back(val);
     }
+    Assoc env1 = new_env;
     for(int i = 0;i < size;++i) {
         std::string &str = bind[i].first;
-        modify(str, val_v[i], env);
+        modify(str, val_v[i], env1);
     }
-    Value body_value1 = body ->eval(env);
-    env = new_env;
-    return body_value1;
+    Value body_value = body ->eval(env1);
+    return body_value;
 }
 
 Value Var::eval(Assoc &e) { // evaluation of variable
+    checkname(x);
     Value val = find(x,e);
     if(val.get()) {
-        return val;
+        if(val->v_type != V_STRING){
+            return val;
+        }else {
+            throw RuntimeError("");
+        }
     }else if(primitives.count(x)) {
         std::vector<std::string> v;
-        if(primitives1.count(x)) {
-            v.push_back("rand");
-        }else if(primitives2.count(x)) {
-            v.push_back("rand1");
-            v.push_back("rand2");
+        if(primitives[x] == E_PLUS) {
+            v.push_back("plus1");
+            v.push_back("plus2");
+            Expr expr = Expr(new Plus(new Var("plus1"),new Var("plus2")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_MINUS) {
+            v.push_back("minus1");
+            v.push_back("minus2");
+            Expr expr = Expr(new Minus(new Var("minus1"),new Var("minus2")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_MUL) {
+            v.push_back("mul1");
+            v.push_back("mul2");
+            Expr expr = Expr(new Mult(new Var("mul1"),new Var("mul2")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_LT) {
+            v.push_back("lt1");
+            v.push_back("lt2");
+            Expr expr = Expr(new Less(new Var("lt1"),new Var("lt2")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_LE) {
+            v.push_back("le1");
+            v.push_back("le2");
+            Expr expr = Expr(new LessEq(new Var("le1"),new Var("le2")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_EQ) {
+            v.push_back("eq1");
+            v.push_back("eq2");
+            Expr expr = Expr(new Equal(new Var("eq1"),new Var("eq2")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_GE) {
+            v.push_back("ge1");
+            v.push_back("ge2");
+            Expr expr = Expr(new GreaterEq(new Var("ge1"),new Var("ge2")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_GT) {
+            v.push_back("gt1");
+            v.push_back("gt2");
+            Expr expr = Expr(new Greater(new Var("gt1"),new Var("gt2")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_EQQ) {
+            v.push_back("eqq1");
+            v.push_back("eqq2");
+            Expr expr = Expr(new IsEq(new Var("eqq1"),new Var("eqq2")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_BOOLQ) {
+            v.push_back("boolq");
+            Expr expr = Expr(new IsBoolean(new Var("boolq")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_INTQ) {
+            v.push_back("intq");
+            Expr expr = Expr(new IsFixnum(new Var("intq")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_NULLQ) {
+            v.push_back("nullq");
+            Expr expr = Expr(new IsNull(new Var("nullq")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_PAIRQ) {
+            v.push_back("pairq");
+            Expr expr = Expr(new IsPair(new Var("pairq")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_PROCQ) {
+            v.push_back("procq");
+            Expr expr = Expr(new IsProcedure(new Var("procq")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_SYMBOLQ) {
+            v.push_back("symbolq");
+            Expr expr = Expr(new IsSymbol(new Var("symbolq")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_CONS) {
+            v.push_back("cons1");
+            v.push_back("cons2");
+            Expr expr = Expr(new Cons(new Var("cons1"),new Var("cons2")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_NOT) {
+            v.push_back("not");
+            Expr expr = Expr(new Not(new Var("symbolq")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_CAR) {
+            v.push_back("car");
+            Expr expr = Expr(new Car(new Var("car")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_CDR) {
+            v.push_back("cdr");
+            Expr expr = Expr(new Cdr(new Var("cdr")));
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_VOID) {
+            Expr expr = Expr(new MakeVoid());
+            return ClosureV(v, expr, e);
+        }else if(primitives[x] == E_EXIT) {
+            Expr expr = Expr(new Exit());
+            return ClosureV(v, expr, e);
         }
-        return ClosureV(v,Expr(new Var(x)),e);
-    }else if(reserved_words.count(x)) {
-        std::vector<std::string> v(1,x);
-        return ClosureV(v,Expr(new Var(x)),e);
     }
     throw RuntimeError("");
 }
@@ -180,7 +227,7 @@ Value Begin::eval(Assoc &e) { // begin expression
     for(int i = 0;i < es.size() - 1;++i) {
         es[i]->eval(e);
     }
-    return Value(es.back()->eval(e));
+    return es.back()->eval(e);
 }
 
 Value Quote::eval(Assoc &e) { // quote expression
@@ -189,18 +236,38 @@ Value Quote::eval(Assoc &e) { // quote expression
     }else if(List* list_ = dynamic_cast<List*>(this->s.get())) {
         if(list_->stxs.size() == 0) {
             return NullV();
+        }else if(list_->stxs.size() == 1) {
+            return PairV(Quote(list_->stxs[0]).eval(e),NullV());
+        }else {
+            int pos=-1;
+            int count = 0;
+            for(int i = 0;i < list_->stxs.size();++i) {
+                if(Identifier* id = dynamic_cast<Identifier*>(list_->stxs[i].get())) {
+                    if(id->s == ".") {
+                        count++;
+                        pos = i;
+                        if(count > 1) {
+                            throw RuntimeError("");
+                        }
+                    }
+                }
+            }
+            if(count == 1 && ((pos != list_->stxs.size() - 2) || list_ ->stxs.size() < 3)) {
+                throw RuntimeError("");
+            }
+
+            if(list_->stxs.size() == 3) {
+                if(Identifier* id = dynamic_cast<Identifier*>(list_->stxs[1].get())) {
+                    if(id->s == ".") {
+                        return PairV(Quote(list_->stxs[0]).eval(e),Quote(list_->stxs[2]).eval(e));
+                    }
+                }
+            }
         }
         Syntax syntax_tmp = list_->stxs[0];
         List rest_list = *list_;
         rest_list.stxs.erase(rest_list.stxs.begin());
         List* list_ptr = new List(rest_list);
-        if(rest_list.stxs.size() == 2) {
-            if(Identifier* ide = dynamic_cast<Identifier*>(rest_list.stxs[0].get())) {
-                if(ide->s == ".") {
-                    return PairV(Quote(syntax_tmp).eval(e),Quote(rest_list.stxs[1]).eval(e));
-                }
-            }
-        }
         return PairV(Quote(syntax_tmp).eval(e),Quote(list_ptr).eval(e));
     }else {
         return s->parse(e)->eval(e);
@@ -405,15 +472,6 @@ Value Car::evalRator(const Value &rand) { // car
 Value Cdr::evalRator(const Value &rand) { // cdr
     if(rand->v_type == V_PAIR) {
         Pair* pa = dynamic_cast<Pair*>(rand.get());
-        Pair* pa1 = pa;
-        if(pa1->cdr->v_type == V_PAIR) {
-            Pair* pa1 = dynamic_cast<Pair*>(pa->cdr.get());
-            if(Symbol* sym = dynamic_cast<Symbol*>(pa1->car.get())) {
-                if(sym->s == ".") {
-                    return pa1->cdr;
-                }
-            }
-        }
         return pa->cdr;
     }
     throw RuntimeError("");
